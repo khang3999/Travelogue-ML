@@ -40,7 +40,7 @@ def prepare_data(tour_data_set):
         X.append(feature)
 
         # Tạo kết quả (label) cho từng dữ liệu của mô hình nếu có giao nhau và rating >= 2.5 (Dùng toán tử 3 ngôi)
-        label = 1 if overlap_count > 0 and rating >= 2.5 else 0
+        label = 1 if overlap_count > 0 and rating_scaled >= 0.5 else 0
         y.append(label)
         print(X)
         print(y)
@@ -55,7 +55,7 @@ def train_model(tour_dataset):
     except FileNotFoundError:
         model = RandomForestClassifier(n_estimators=100, random_state=42)
     # Tạo đặc trưng từ dữ liệu
-    X , y = prepare_data(tour_dataset)
+    X, y = prepare_data(tour_dataset)
     # Kiểm tra type của mô hình
     print("Type of model before training:", type(model))
     # Train mô hình
