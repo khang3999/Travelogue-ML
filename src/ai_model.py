@@ -17,10 +17,10 @@ import joblib
 
 
 # Hàm xử lý dữ liệu thành feature
-def prepare_data(tour_dataset):
+def prepare_data(tour_data_set):
     X = []
     y = []
-    for tour in tour_dataset:
+    for tour in tour_data_set:
         tour_locations = tour["locations"]
         if isinstance(tour["behaviors"], str):
             behavior = [b.strip() for b in tour["behaviors"].split(",")]
@@ -36,8 +36,8 @@ def prepare_data(tour_dataset):
         # Chuẩn hóa rating về [0, 1]
         rating_scaled = float(rating) / 5.0
 
-        features = [overlap_count, delta, rating_scaled]
-        X.append(features)
+        feature = [overlap_count, delta, rating_scaled]
+        X.append(feature)
 
         # Tạo kết quả (label) cho từng dữ liệu của mô hình nếu có giao nhau và rating >= 2.5 (Dùng toán tử 3 ngôi)
         label = 1 if overlap_count > 0 and rating >= 2.5 else 0
