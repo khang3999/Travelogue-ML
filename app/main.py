@@ -1,6 +1,5 @@
 import sys
 import os
-import joblib
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import tkinter as tk
@@ -13,7 +12,6 @@ from src.app_utils import (
 )
 from src.ai_model import train_model
 from database.firebase_config import init_firebase
-from sklearn.ensemble import RandomForestClassifier
 
 
 init_firebase()
