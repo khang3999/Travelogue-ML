@@ -1,55 +1,83 @@
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import MinMaxScaler
+# from sklearn.preprocessing import MinMaxScaler
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+import joblib
 
-#  Hàm training
-def train_model(tours, user_locations):
-    # user_location_vector = one_hot_from_cities(user_locations, city_to_index)
+
+# Dữ liệu cho training
+# # {
+#         "behavior": "40,38",
+#         "id": "-OVkNEIIdSdXXUSOPsPG",
+#         "locations": [
+#             "48"
+#         ],
+#         "rating": 0
+#     }
+
+
+# Hàm xử lý dữ liệu thành feature
+def prepare_data(tour_data_set):
     X = []
     y = []
-    # Vì fit() của MinMaxScaler nhận về một 2D array, nên ta cần chuyển đổi các rating thành dạng [[rating1], [rating2], ...]
-    ratings = [[tour["rating"]] for tour in tours]
-    scaler = MinMaxScaler()
-    # Tự nội suy đưa min về 0 và max về 1 các giá trị giữa cho phù hợp
-    scaler.fit(ratings)
-
-    for tour in tours:
-        tour_locations_set = set(tour["locations"])
-        user_locations_set = set(user_locations)
-
+    for tour in tour_data_set:
+        tour_locations = tour["locations"]
+        if isinstance(tour["behaviors"], str):
+            behavior = [b.strip() for b in tour["behaviors"].split(",")]
+        else:
+            behavior = [str(b).strip() for b in tour["behaviors"]]
+        rating = tour["rating"]
         # Giao nhau
-        overlap_count = len(tour_locations_set & user_locations_set)
-        max_len = max(len(tour["locations"]), len(user_locations))
-        delta = 1 - (overlap_count / max_len) if max_len > 0 else 1
-        # Chuyển đổi rating về dạng đã nội suy. scaler.transform trả mảng 2 chiều [[0.75]] nên lấy 2 lần [0][0]
-        rating_scaled = scaler.transform([[tour["rating"]]])[0][0]
+        overlap_count = len(set(tour_locations) & set(behavior))
+        max_len = max(len(tour_locations), len(behavior))
+        delta = (overlap_count / max_len) if max_len > 0 else 0
+        # # Chuyển đổi rating về dạng đã nội suy. scaler.transform trả mảng 2 chiều [[0.75]] nên lấy 2 lần [0][0]
+        # rating_scaled = scaler.transform([[tour["rating"]]])[0][0]
+        # Chuẩn hóa rating về [0, 1]
+        rating_scaled = float(rating) / 5.0
 
-        features = [overlap_count, delta, rating_scaled]
-        X.append(features)
+        feature = [overlap_count, delta, rating_scaled]
+        X.append(feature)
 
         # Tạo kết quả (label) cho từng dữ liệu của mô hình nếu có giao nhau và rating >= 2.5 (Dùng toán tử 3 ngôi)
-        label = 1 if overlap_count > 0 and tour["rating"] >= 2.5 else 0
+        label = 1 if overlap_count > 0 and rating_scaled >= 0.5 else 0
         y.append(label)
+        print(X)
+        print(y)
+    return X, y
 
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+#  Hàm training
+def train_model(tour_dataset):
+    # Load mô hình đã lưu, nếu không có thì tạo mới
+    try:
+        model = joblib.load("models/tour_model.pkl")
+    except FileNotFoundError:
+        model = RandomForestClassifier(n_estimators=100, random_state=42)
+    # Tạo đặc trưng từ dữ liệu
+    X, y = prepare_data(tour_dataset)
+    # Kiểm tra type của mô hình
+    print("Type of model before training:", type(model))
+    # Train mô hình
     model.fit(X, y)
+    return model
 
-    return model, scaler, X, y
 
+# Dữ liệu cho đánh giá
 # Tính toán điểm số dự đoán cho từng tour - đưa qua backend
 # Dựa trên số lượng địa điểm giao nhau và rating đã nội suy
-def predict_score(tour, user_locations, model, scaler):
-    # Đếm tỉnh trùng
-    overlap_count = len(set(tour["locations"]) & set(user_locations))
-    # Tính delta - độ lệch giữa số lượng địa điểm giao nhau và tổng số địa điểm
-    max_len = max(len(tour["locations"]), len(user_locations))
-    delta = 1 - (overlap_count / max_len) if max_len > 0 else 1
-    # Chuyển đổi rating về dạng đã nội suy
-    rating_scaled = scaler.transform([[tour["rating"]]])[0][0]
-    # Tạo đặc trưng (X) của từng tour để mô hình dự đoán
-    features = [[overlap_count, delta, rating_scaled]]
-    return model.predict_proba(features)[0][1]
+def predict_score(tour_dataset, model):
+    # X là một mảng các feature
+    X, y = prepare_data(tour_dataset)
+
+    # result =
+    # [
+    #   [0.2, 0.8],  # Tour 1 → 80% phù hợp
+    #   [0.6, 0.4],  # Tour 2 → 40% phù hợp
+    #   [0.1, 0.9]   # Tour 3 → 90% phù hợp
+    # ]
+    result = model.predict_proba(X)
+    return result
 
 
 # Đánh giá mô hình
@@ -65,5 +93,3 @@ def evaluate_model(model, X, y_true):
     print(f"Precision: {precision:.2f}")
     print(f"Recall   : {recall:.2f}")
     print(f"F1 Score : {f1:.2f}")
-    
-    
