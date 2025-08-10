@@ -53,7 +53,7 @@ def train_model(tour_dataset):
     try:
         model = joblib.load("models/tour_model.pkl")
     except FileNotFoundError:
-        model = RandomForestClassifier(n_estimators=100, random_state=42)
+        model = RandomForestClassifier(n_estimators=100, random_state=42, max_features=2)
     # Tạo đặc trưng từ dữ liệu
     X, y = prepare_data(tour_dataset)
     # Kiểm tra type của mô hình
